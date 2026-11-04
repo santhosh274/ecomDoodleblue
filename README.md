@@ -84,6 +84,7 @@ ADMIN_PASSWORD=replace-this-before-seeding
 | Variable | Purpose |
 |---|---|
 | `PORT` | Express listening port. Defaults to `2000`; the Vite development proxy reads this value too. |
+| `VITE_API_URL` | Frontend API base URL for production builds, including `/api` (for example `https://api.example.com/api`). Set this in Vercel's project environment variables and redeploy. |
 | `MONGODB_URI` | MongoDB connection string. `MONGODB_URL` is also accepted by the database connection helper. |
 | `JWT_SECRET` | Secret used to sign and verify access tokens. Set a strong, private value. |
 | `JWT_EXPIRES_IN` | JWT lifetime accepted by `jsonwebtoken` (for example `1d`). Defaults to `1d`. |
@@ -92,7 +93,7 @@ ADMIN_PASSWORD=replace-this-before-seeding
 | `ADMIN_EMAIL` | Email address for the admin account created by seeding. Defaults to `admin@ecomsite.com`. |
 | `ADMIN_PASSWORD` | Password for the seeded admin account. The code has a development fallback of `admin123`; override it and protect the credentials. |
 
-`dotenv` loads the environment in the server and seed process. Vite reads `PORT` for its `/api` proxy; the browser client itself uses `/api` during development. For a production frontend build, the API base in `src/api.js` is currently hard-coded to `http://localhost:2000/api`; deployers must configure that URL for their environment before building.
+`dotenv` loads the environment in the server and seed process. Vite reads `PORT` for its local `/api` proxy; the browser client itself uses `/api` during development. A production frontend build uses `VITE_API_URL`; if it is not set, the current development tunnel URL in `src/api.js` is used as a fallback. Set `VITE_API_URL` in Vercel for production, including the `/api` suffix, then redeploy because Vite embeds `VITE_*` variables at build time.
 
 The JWT service has a development fallback secret if `JWT_SECRET` is omitted. Always configure a private, strong `JWT_SECRET` outside local development. Admin accounts should be provisioned through trusted account-management processes.
 
@@ -131,8 +132,8 @@ The default seeded admin credentials are `admin@ecomsite.com` / `admin123` only 
 1. `npm start` runs `app.js` using Nodemon.
 2. `app.js` loads `.env`, installs JSON body parsing and CORS response headers, mounts the route modules, and connects to MongoDB.
 3. Express starts listening on `PORT` after MongoDB connects.
-4. In development, the browser calls relative `/api/...` URLs. Vite proxies these requests to the Express port, avoiding a separate browser-to-API origin.
-5. In production, `src/api.js` uses its configured absolute API base URL instead of the Vite proxy.
+4. In development, the browser calls relative `/api/...` URLs. Vite proxies these requests to local Express at `127.0.0.1:$PORT`, avoiding a separate browser-to-API origin.
+5. In production, `src/api.js` uses `VITE_API_URL` instead of the Vite proxy. Set it in the frontend host's build environment.
 
 ### Signup and login
 
@@ -379,7 +380,7 @@ There is no test script configured in `package.json`.
 
 ### Browser reports `502 Bad Gateway` for `/api/*`
 
-The browser reached Vite, but Vite could not connect to Express. Start the backend with `npm start` and wait for `MongoDB connected successfully` and `Server is running on port : ...`. Confirm that `.env`'s `PORT` matches the backend's listening port. The Vite proxy uses the same `PORT` value (default `2000`).
+For the deployed frontend, check the browser's Network panel. If the request still targets `localhost`, Vercel is serving a build that has not picked up `VITE_API_URL`; set it to the public backend URL ending in `/api` and redeploy. For the local frontend, start the backend with `npm start` and wait for `MongoDB connected successfully` and `Server is running on port : ...`. Confirm that `.env`'s `PORT` matches the backend's listening port. The local Vite proxy uses the same `PORT` value (default `2000`).
 
 ### MongoDB connection fails
 

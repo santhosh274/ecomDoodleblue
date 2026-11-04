@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
     // Keep this in sync with app.js, which starts Express on PORT.
     server: {
       proxy: {
-        '/api': `https://56wr8545-2000.inc1.devtunnels.ms/`
+        '/api': `http://127.0.0.1:${PORT}`
       }
     }
   }
