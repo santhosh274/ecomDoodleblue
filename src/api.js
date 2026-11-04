@@ -1,5 +1,5 @@
 // in dev the api base is "/" relative, riding the vite proxy (vite.config.mjs); for a production build, set the absolute backend url here
-const API = import.meta.env.DEV ? '/api' : 'http://localhost:2000/api'
+const API = import.meta.env.DEV ? '/api' : 'https://56wr8545-2000.inc1.devtunnels.ms/api'
 const TOKEN_KEY = 'ecomsite_token'
 
 export function getToken() {
