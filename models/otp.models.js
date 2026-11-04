@@ -5,7 +5,7 @@ const otpSchema = new mongoose.Schema(
         email: {
             type: String,
             required: [true, "Email is required"],
-            trim:true,
+            trim: true,
             lowercase: true,
             index: true
         },
@@ -20,7 +20,7 @@ const otpSchema = new mongoose.Schema(
             type: Boolean,
             default: false
         },
-        
+
         expiresAt: {
             type: Date,
             required: true,

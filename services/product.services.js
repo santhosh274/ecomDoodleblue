@@ -31,8 +31,15 @@ class ProductService {
         }
         return await Product.findOneAndUpdate(
             { _id: id, isDeleted: { $ne: true } },
-            changes,
-            { new: true }
+            {
+                title: changes.title,
+                description: changes.description,
+                price: changes.price,
+                category: changes.category,
+                image: changes.image,
+                stock: changes.stock
+            },
+            { new: true, runValidators: true }
         );
     }
 

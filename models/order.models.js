@@ -52,6 +52,24 @@ const orderSchema = new mongoose.Schema(
             min: 0
         },
 
+        subtotal: {
+            type: Number,
+            required: true,
+            min: 0
+        },
+
+        discountPercentage: {
+            type: Number,
+            default: 0,
+            min: 0,
+            max: 100
+        },
+
+        couponCode: {
+            type: String,
+            default: null
+        },
+
         shippingAddress: {
             type: String,
             required: [true, "Shipping address is required"],
@@ -63,12 +81,6 @@ const orderSchema = new mongoose.Schema(
             enum: ['pending', 'shipped', 'delivered', 'cancelled'],
             default: 'pending'
         }
-    },
-    {
-        subtotal: { type: Number, required: true },
-        discountPercentage: { type: Number, default: 0 },
-        couponCode: { type: String, default: null },
-        total: { type: Number, required: true } 
     },
     {
         timestamps: true,

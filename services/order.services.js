@@ -2,9 +2,10 @@ const mongoose = require('mongoose');
 const Order = require('../models/order.models');
 const Product = require('../models/product.models');
 const Cart = require('../models/cart.models');
+const Coupon = require('../models/Coupon');
 
 class OrderService {
-    async createOrder(userId, { shippingAddress }) {
+    async createOrder(userId, { shippingAddress, couponCode }) {
         const cart = await Cart.findOne({ user: userId }).populate('items.productId');
         if (!cart || cart.items.length === 0) {
             throw new Error('Cart is empty');
@@ -28,8 +29,29 @@ class OrderService {
             });
         }
 
-        const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-        const order = await Order.create({ user: userId, items, total, shippingAddress });
+        const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        let discountPercentage = 0;
+        let normalizedCouponCode = null;
+
+        if (couponCode) {
+            normalizedCouponCode = typeof couponCode === 'string' ? couponCode.trim().toUpperCase() : '';
+            const coupon = await Coupon.findOne({ code: normalizedCouponCode, isActive: true });
+            if (!coupon || (coupon.expiryDate && coupon.expiryDate <= new Date())) {
+                throw new Error('Invalid or expired coupon code');
+            }
+            discountPercentage = coupon.discountPercentage;
+        }
+
+        const total = Number((subtotal * (1 - discountPercentage / 100)).toFixed(2));
+        const order = await Order.create({
+            user: userId,
+            items,
+            subtotal,
+            discountPercentage,
+            couponCode: normalizedCouponCode,
+            total,
+            shippingAddress
+        });
 
         for (const item of items) {
             await Product.findByIdAndUpdate(item.productId, { $inc: { stock: -item.quantity } });
