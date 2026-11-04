@@ -65,6 +65,12 @@ const orderSchema = new mongoose.Schema(
         }
     },
     {
+        subtotal: { type: Number, required: true },
+        discountPercentage: { type: Number, default: 0 },
+        couponCode: { type: String, default: null },
+        total: { type: Number, required: true } 
+    },
+    {
         timestamps: true,
         collection: 'orders'
     }

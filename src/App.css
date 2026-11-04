@@ -125,6 +125,7 @@ button.link {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: 20px;
+
 }
 
 .card {
@@ -174,6 +175,9 @@ button.link {
   justify-content: space-between;
   align-items: center;
   margin-top: 12px;
+  color: red;
+  background: white;
+  border-radius: 20px;
 }
 
 .price {

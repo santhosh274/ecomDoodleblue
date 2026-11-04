@@ -6,7 +6,15 @@ class CartService {
         let cart = await Cart.findOne({ user: userId }).populate('items.productId');
         if (!cart) {
             cart = await Cart.create({ user: userId, items: [] });
+            return cart;
         }
+
+        const availableItems = cart.items.filter((item) => item.productId);
+        if (availableItems.length !== cart.items.length) {
+            cart.items = availableItems;
+            await cart.save();
+        }
+
         return cart;
     }
 

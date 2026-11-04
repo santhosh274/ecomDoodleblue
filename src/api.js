@@ -44,6 +44,19 @@ async function request(path, { method = 'GET', body, auth = false } = {}) {
     }
     return data
 }
+async function validateCoupon(code) {
+  const res = await fetch(`${API}/coupons/validate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${getToken()}`
+    },
+    body: JSON.stringify({ code })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message);
+  return data;
+}
 
 export const api = {
     signup: (payload) => request('/users/signup', { method: 'POST', body: payload }),
@@ -67,6 +80,7 @@ export const api = {
     updateCartItem: (productId, quantity) => request('/cart/items', { method: 'PATCH', body: { productId, quantity }, auth: true }),
     removeCartItem: (productId) => request(`/cart/items/${productId}`, { method: 'DELETE', auth: true }),
     clearCart: () => request('/cart', { method: 'DELETE', auth: true }),
+    validateCoupon,
 
     placeOrder: (shippingAddress) => request('/orders', { method: 'POST', body: { shippingAddress }, auth: true }),
     getMyOrders: () => request('/orders/me', { auth: true }),

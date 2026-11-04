@@ -143,7 +143,7 @@ function App() {
   return (
     <>
       <header className="topbar">
-        <button className="brand" onClick={() => setView('shop')}>ecomsite</button>
+        <button className="brand" onClick={() => setView('shop')}>E-commerce</button>
         <nav>
           <button className={view === 'shop' ? 'navlink active' : 'navlink'} onClick={() => setView('shop')}>Shop</button>
           {isAdmin && <button className={view === 'admin' ? 'navlink active' : 'navlink'} onClick={() => setView('admin')}>Admin</button>}
@@ -274,9 +274,8 @@ function ProductView({ product, onAddToCart, onBack }) {
 function CartView({ cart, onUpdate, onRemove, showToast, onPlaced }) {
   const [address, setAddress] = useState('')
   const [placing, setPlacing] = useState(false)
-
-  // local draft quantities : clicking +/- updates these instantly while a debounced timer
-  // sends the final value to the backend, so one burst of clicks = one api call
+  const [couponInput, setCouponInput] = useState('')
+  const [appliedCoupon, setAppliedCoupon] = useState(null) // { code, discountPercentage }
   const [pendingQty, setPendingQty] = useState({})
 
   useEffect(() => {
@@ -304,15 +303,32 @@ function CartView({ cart, onUpdate, onRemove, showToast, onPlaced }) {
   }
 
   if (!cart) return <p className="empty">Loading cart...</p>
-  if (cart.items.length === 0) return <p className="empty">Your cart is empty</p>
+  const items = cart.items.filter((item) => item?.productId)
+  if (items.length === 0) return <p className="empty">Your cart is empty</p>
 
-  const total = cart.items.reduce((sum, item) => sum + (item.productId?.price || item.price) * item.quantity, 0)
+  const subtotal = items.reduce((sum, item) => sum + (item.productId.price || item.price) * item.quantity, 0)
+  const discountAmount = appliedCoupon ? (subtotal * appliedCoupon.discountPercentage) / 100 : 0
+  const total = subtotal - discountAmount
+
+  async function handleApplyCoupon(e) {
+    e.preventDefault()
+    if (!couponInput.trim()) return
+    try {
+      const result = await api.validateCoupon(couponInput.trim())
+      setAppliedCoupon({ code: result.code, discountPercentage: result.discountPercentage })
+      showToast(`Coupon applied! ${result.discountPercentage}% off`)
+      setCouponInput('')
+    } catch (err) {
+      showToast(err.message)
+    }
+  }
 
   async function placeOrder() {
     if (!address.trim()) return
     setPlacing(true)
     try {
-      const { order } = await api.placeOrder(address)
+      // Pass appliedCoupon.code if you updated your backend placeOrder route to accept it
+      const { order } = await api.placeOrder(address, appliedCoupon?.code)
       await api.clearCart()
       onPlaced(order._id)
     } catch (err) {
@@ -325,7 +341,7 @@ function CartView({ cart, onUpdate, onRemove, showToast, onPlaced }) {
     <section id="cart">
       <h2>Your cart</h2>
       <div className="cart-list">
-        {cart.items.map((item) => (
+        {items.map((item) => (
           <div key={item.productId._id} className="cart-row">
             <img src={item.productId.image} alt={item.productId.title} />
             <div>
@@ -342,14 +358,37 @@ function CartView({ cart, onUpdate, onRemove, showToast, onPlaced }) {
           </div>
         ))}
       </div>
-      <h3>Total : ${total.toFixed(2)}</h3>
+
+      {/* Coupon Section */}
+      <div className="coupon-section" style={{ margin: '1rem 0', display: 'flex', gap: '8px' }}>
+        <input 
+          placeholder="Promo code (e.g. WELCOME10)" 
+          value={couponInput} 
+          onChange={(e) => setCouponInput(e.target.value)} 
+        />
+        <button type="button" onClick={handleApplyCoupon}>Apply</button>
+      </div>
+
+      {appliedCoupon && (
+        <p className="muted" style={{ color: 'var(--accent)' }}>
+          Coupon <strong>{appliedCoupon.code}</strong> applied ({appliedCoupon.discountPercentage}% off) 
+          <button style={{ background: 'none', border: 'none', color: 'red', cursor: 'pointer', marginLeft: '8px' }} onClick={() => setAppliedCoupon(null)}>Remove</button>
+        </p>
+      )}
+
+      <div className="cart-summary" style={{ margin: '1rem 0' }}>
+        <p className="muted">Subtotal: ${subtotal.toFixed(2)}</p>
+        {appliedCoupon && <p className="muted">Discount: -${discountAmount.toFixed(2)}</p>}
+        <h3>Total: ${total.toFixed(2)}</h3>
+      </div>
+
       <div className="checkout">
         <input placeholder="Shipping address" value={address} onChange={(e) => setAddress(e.target.value)} />
         <button disabled={placing} onClick={placeOrder}>{placing ? 'Placing....' : 'Place order'}</button>
       </div>
     </section>
   )
-}
+} 
 
 function OrdersView({ orders }) {
   if (orders.length === 0) return <p className="empty">No orders yet</p>
@@ -407,9 +446,9 @@ function AuthView({ onLogin }) {
         const result = await api.login({ email: form.email, password: form.password })
         onLogin(result)
       } else {
-        await api.signup(form)
-        const result = await api.login({ email: form.email, password: form.password })
-        onLogin(result)
+     await api.signup(form)
+        setMode('login') 
+        showToast('Account created successfully! Please log in.')
       }
     } catch (err) {
       setError(err.message)
